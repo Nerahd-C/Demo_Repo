@@ -288,9 +288,23 @@ namespace Grocycle
                     }
                 }
 
-                Console.WriteLine("=========================================");
-                Console.WriteLine("               GROCYCLE");
-                Console.WriteLine("=========================================\n");
+                Console.WriteLine("=======================================================================================================================");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine(@"
+
+                              ██████╗ ██████╗  ██████╗  ██████╗██╗   ██╗ ██████╗██╗     ███████╗
+                             ██╔════╝ ██╔══██╗██╔═══██╗██╔════╝╚██╗ ██╔╝██╔════╝██║     ██╔════╝
+                             ██║  ███╗██████╔╝██║   ██║██║      ╚████╔╝ ██║     ██║     █████╗
+                             ██║   ██║██╔══██╗██║   ██║██║       ╚██╔╝  ██║     ██║     ██╔══╝
+                             ╚██████╔╝██║  ██║╚██████╔╝╚██████╗   ██║   ╚██████╗███████╗███████╗
+                              ╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝   ╚═╝    ╚═════╝╚══════╝╚══════╝
+
+                                                 SMART GROCERY PLANNER 
+                                      SDG 12: Responsible Consumption & Production
+
+                                    ");
+                Console.ResetColor();
+                Console.WriteLine("=======================================================================================================================\n");
 
                 Console.WriteLine($"Welcome, {CurrentUser}");
                 Console.WriteLine();
@@ -299,7 +313,7 @@ namespace Grocycle
                 Console.WriteLine($"Store Visits   : {visits}");
                 Console.WriteLine($"Family Members : {members}");
 
-                Console.WriteLine("\n=========================================\n");
+                Console.WriteLine("\n=======================================================================================================================\n");
 
                 Console.WriteLine("[1] Account Information");
                 Console.WriteLine("[2] Inventory Management");
