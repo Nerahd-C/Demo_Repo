@@ -71,7 +71,7 @@ namespace Grocycle
                         break;
 
                     default:
-                        Console.WriteLine("\nInvalid Choice!");
+                        Console.WriteLine("\nPlease input a valid option.");
                         Pause();
                         break;
                 }
@@ -194,52 +194,62 @@ namespace Grocycle
         {
 
             Console.Clear();
-
-            Console.WriteLine("=========================================");
-            Console.WriteLine("                 LOGIN");
-            Console.WriteLine("=========================================\n");
-
-            Console.Write("Username: ");
-            string username = Console.ReadLine().Trim();
-
-            Console.WriteLine("Password: ");
-            string password = Console.ReadLine().Trim();
-
-            string userFolder = Path.Combine("Users", username);
-
-            if (!Directory.Exists(userFolder))
+            while (true)
             {
-                Console.WriteLine("\nAccount not found!");
-                Pause();
-                Console.Clear();
-                return;
-            }
+                Console.WriteLine("=========================================");
+                Console.WriteLine("                 LOGIN");
+                Console.WriteLine("=========================================\n");
 
+                Console.Write("Username: ");
+                string username = Console.ReadLine().Trim();
 
-            string profilePath =
-                    Path.Combine(UserFolder, "Profile.txt");
+                string userFolder = Path.Combine("Users", username);
 
-            string[] profile = File.ReadAllLines(profilePath);
-
-            string savedPassword = "";
-
-            foreach(string pass in profilePath)
-            {
-                string[] data = pass.Split('|');
-
-                if (data[0] == "Password")
+                if (!Directory.Exists(userFolder))
                 {
-                    savedPassword = data[1];
+                    Console.WriteLine("\nAccount not found!");
+                    Pause();
+                    Console.Clear();
+                    continue;
                 }
+
+                Console.Write("Password: ");
+                string password = Console.ReadLine().Trim();
+
+                string profilePath =
+                    Path.Combine(userFolder, "Profile.txt");
+
+                string[] profile = File.ReadAllLines(profilePath);
+
+                string savedPassword = "";
+
+                foreach (string pass in profile)
+                {
+                    string[] data = pass.Split('|');
+
+                    if (data[0] == "Password")
+                    {
+                        savedPassword = data[1];
+                    }
+                }
+
+                if (password != savedPassword)
+                {
+                    Console.WriteLine("\nIncorrect Password!");
+                    Pause();
+                    Console.Clear();
+                    continue;
+                }
+
+                CurrentUser = username;
+                UserFolder = userFolder;
+
+                Console.WriteLine("\nLogin Successful!");
+                Pause();
+
+                Dashboard();
+                break;
             }
-
-            CurrentUser = username;
-            UserFolder = userFolder;
-
-            Console.WriteLine("\nLogin Successful!");
-            Pause();
-
-            Dashboard();
         }
 
         static void Dashboard()
