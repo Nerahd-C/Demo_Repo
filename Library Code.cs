@@ -1,702 +1,785 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
-using System.Collections;
-using System.Dynamic;
-using System.Runtime.InteropServices.WindowsRuntime;
+using System.Security.Principal;
+using System.Globalization;
 
-namespace ConsoleApp26
+namespace Grocycle
 {
     internal class Program
     {
+        static string CurrentUser;
+        static string UserFolder;
+        static Queue<string> ExpiringItems =
+            new Queue<string>();
+        static Stack<string> WasteHistory =
+            new Stack<string>();
+
         static void Main(string[] args)
         {
-            string[] StudentsList = File.ReadAllLines("StudentList.txt");
-            string[] LibrariansList = File.ReadAllLines("LibrarianList.txt");
-            string[] BooksList = File.ReadAllLines("Books.txt");
+            Directory.CreateDirectory("Users");
 
-            List<string[]> Students = new List<string[]>();
-            List<string[]> Librarians = new List<string[]>();
-            List<string[]> Books = new List<string[]>();
+            StartMenu();
+        }
 
-
-            foreach (var line in StudentsList)
-            {
-                Students.Add(line.Split(','));
-            }
-
-
-            foreach (var line in LibrariansList)
-            {
-                Librarians.Add(line.Split(','));
-            }
-
-
-            foreach (var line in BooksList)
-            {
-                var parts = line.Split(',');
-
-                if (parts.Length < 2) continue;
-
-                string title = parts[0];
-                string author = parts[1];
-
-                string borrowed = "";
-                if (parts.Length > 2)
-                {
-                    borrowed = parts[2];
-                }
-
-                string queue = "";
-                if (parts.Length > 3)
-                {
-                    queue = parts[3];
-                }
-
-                Books.Add(new string[] { title, author, borrowed, queue });
-            }
-
-
-            List<string[]> Data = new List<string[]>();
-            Data.AddRange(Students);
-            Data.AddRange(Librarians);
-
-            string[] names = new string[Data.Count];
-            string[] passwords = new string[Data.Count];
-            string[] roles = new string[Data.Count];
-
-            for (int i = 0; i < Data.Count; i++)
-            {
-                names[i] = Data[i][0];
-                passwords[i] = Data[i][1];
-                roles[i] = Data[i][2];
-            }
-
-
-
+        static void StartMenu()
+        {
             while (true)
             {
                 Console.Clear();
 
-                string choice = Front();
+                Console.WriteLine("=======================================================================================================================");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine(@"
 
-                if (choice == "2")
+                              ██████╗ ██████╗  ██████╗  ██████╗██╗   ██╗ ██████╗██╗     ███████╗
+                             ██╔════╝ ██╔══██╗██╔═══██╗██╔════╝╚██╗ ██╔╝██╔════╝██║     ██╔════╝
+                             ██║  ███╗██████╔╝██║   ██║██║      ╚████╔╝ ██║     ██║     █████╗
+                             ██║   ██║██╔══██╗██║   ██║██║       ╚██╔╝  ██║     ██║     ██╔══╝
+                             ╚██████╔╝██║  ██║╚██████╔╝╚██████╗   ██║   ╚██████╗███████╗███████╗
+                              ╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝   ╚═╝    ╚═════╝╚══════╝╚══════╝
+
+                                                 SMART GROCERY PLANNER 
+                                      SDG 12: Responsible Consumption & Production
+
+                                    ");
+                Console.ResetColor();
+                Console.WriteLine("=======================================================================================================================\n");
+
+                Console.WriteLine("[1] Login");
+                Console.WriteLine("[2] Sign Up");
+                Console.WriteLine("[3] Exit");
+
+                Console.Write("\nEnter Choice: ");
+                string choice = Console.ReadLine();
+
+                switch (choice)
                 {
-                    SignIn(Students);
+                    case "1":
+                        Login();
+                        break;
+
+                    case "2":
+                        SignUp();
+                        break;
+
+                    case "3":
+                        Environment.Exit(0);
+                        break;
+
+                    default:
+                        Console.WriteLine("\nInvalid Choice!");
+                        Pause();
+                        break;
+                }
+            }
+        }
+
+        static void SignUp()
+        {
+            Console.Clear();
+            while (true)
+            {
+                Console.WriteLine("=========================================");
+                Console.WriteLine("                SIGN UP");
+                Console.WriteLine("=========================================\n");
+
+                Console.Write("Create Username: ");
+                string username = Console.ReadLine().Trim().ToLower();
+
+                if (string.IsNullOrEmpty(username))
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Please enter a username.\n");
+                    Pause();
+                    Console.Clear();
+                    continue;
                 }
 
+                string userFolder = Path.Combine("Users", username);
 
-
-                else if (choice == "1")
+                if (Directory.Exists(userFolder))
                 {
-                    string role;
-                    string current;
-                    role = FindUser(Students, Librarians, out current);
+                    Console.WriteLine();
+                    Console.WriteLine("Username already exists!\n");
+                    Pause();
+                    Console.Clear();
+                    continue;
+                }
 
-                    if (role == "Student")
-                    {
-                        StudentMenu(Books, current);
-                    }
+                Console.Write("Password: ");
+                string password = Console.ReadLine().Trim();
 
-                    else if (role == "Librarian")
-                    {
-                        LibrarianControl(Books);
-                    }
+                if (string.IsNullOrEmpty(password))
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Please enter a password.\n" +
+                        "");
+                    Pause();
+                    Console.Clear();
+                    continue;
+                }
 
-                    else
-                    {
-                        Console.WriteLine("Invalid Input!");
-                        Console.ReadKey();
-                    }
+                Console.Write("Confirm Password: ");
+                string repassword = Console.ReadLine();
+
+                if (password != repassword)
+                {
                     
+                    Console.WriteLine("\nPasswords do not match.\n");
+                    Pause();
+                    Console.Clear();
+                    continue;
+
                 }
 
-                else
-                {
-                    Console.WriteLine("Invalid Input!");
-                    Console.ReadKey();
-                }
+                
+
+                Console.Write("\nMonthly Grocery Budget ($): ");
+                string budget = Console.ReadLine();
+
+                Console.Write("Supermarket Visits Per Month: ");
+                string visits = Console.ReadLine();
+
+                Console.Write("Number of Family Members: ");
+                string members = Console.ReadLine();
+
+                Directory.CreateDirectory(userFolder);
+
+                File.WriteAllLines(
+                    Path.Combine(userFolder, "Profile.txt"),
+                    new string[]
+                    {
+                    $"Username|{username}",
+                    $"Password|{password}",
+                    $"Budget|{budget}",
+                    $"Visits|{visits}",
+                    $"Members|{members}"
+                    });
+
+                File.WriteAllLines(
+                    Path.Combine(userFolder, "Points.txt"),
+                    new string[]
+                    {
+                    "Points|0",
+                    "Rank|Eco Beginner"
+                    });
+
+                File.Create(
+                    Path.Combine(userFolder, "Inventory.txt"))
+                    .Close();
+
+                File.Create(
+                    Path.Combine(userFolder, "Purchases.txt"))
+                    .Close();
+
+                File.Create(
+                    Path.Combine(userFolder, "Waste.txt"))
+                    .Close();
+
+                File.Create(
+                    Path.Combine(userFolder, "Reports.txt"))
+                    .Close();
+
+                Console.WriteLine("\nAccount Created Successfully!");
+                Pause();
+                break;
             }
         }
 
-
-
-        static string Front()
+        static void Login()
         {
+
+            Console.Clear();
 
             Console.WriteLine("=========================================");
-            Console.WriteLine("         GARDEN OF WORDS LIBRARY         ");
-            Console.WriteLine("-----------------------------------------");
-            Console.WriteLine("\t [1] Log In");
-            Console.WriteLine("\t [2] Sign Up");
-            Console.WriteLine("=========================================");
-            Console.Write("Select an option: ");
-            return Console.ReadLine();
-        }
-
-
-        static bool LibrarianControl(List<string[]> Books)
-        {
-            while (true)
-            {
-                Console.Clear();
-                Console.WriteLine("=========================================");
-                Console.WriteLine("                 DASHBOARD                ");
-                Console.WriteLine("-----------------------------------------");
-                Console.WriteLine("[1] View All Books");
-                Console.WriteLine("[2] Add Book");
-                Console.WriteLine("[3] Review Pending");
-                Console.WriteLine("[4] Log Out");
-                Console.WriteLine("=========================================");
-                Console.Write("Enter choice: ");
-
-                string choice = Console.ReadLine();
-
-                switch (choice)
-                {
-                    case "1":
-                        ViewBooks(Books, "Librarian");
-                        Pause();
-                        break;
-
-                    case "2":
-                        AddBooks(Books);
-                        break;
-
-                    case "3":
-                        BorrowApproval(Books);
-                        break;
-
-                    case "4":
-                        return false;
-
-                    default:
-                        Console.WriteLine("Invalid option!");
-                        break;
-                }
-
-
-            }
-        }
-
-
-        static bool StudentMenu(List<string[]> Books, string currentuser)
-        {
-            while (true)
-            {
-                Console.Clear();
-                Console.WriteLine("=========================================");
-                Console.WriteLine("             STUDENT DASHBOARD              ");
-                Console.WriteLine("-----------------------------------------");
-                Console.WriteLine("[1] View Books");
-                Console.WriteLine("[2] Borrow Book");
-                Console.WriteLine("[3] Return Book");
-                Console.WriteLine("[4] Log Out");
-                Console.WriteLine("=========================================");
-                Console.Write("Enter choice: ");
-
-                string choice = Console.ReadLine();
-
-                switch (choice)
-                {
-                    case "1":
-                        ViewBooks(Books, "Student");
-                        Pause();
-                        break;
-
-                    case "2":
-                        BorrowBook(Books, currentuser);
-                        break;
-
-                    case "3":
-                        ReturnBookStudent(Books, currentuser);
-                        break;
-
-                    case "4":
-                        return false;
-
-                    default:
-                        Console.WriteLine("Invalid option!");
-                        break;
-                }
-
-
-            }
-        }
-
-
-        static void AddBooks(List<string[]> Books)
-        {
-            Console.Clear();
-            Console.Write("Enter Title: ");
-            string titleInput = Console.ReadLine();
-            Console.Write("Enter Author: ");
-            string authorInput = Console.ReadLine();
-
-            if (string.IsNullOrWhiteSpace(titleInput) || string.IsNullOrWhiteSpace(authorInput))
-            {
-                Console.WriteLine();
-                Console.WriteLine("No information entered. Returning to menu...");
-                Console.ReadKey();
-                return;
-
-            }
-
-            foreach (var book in Books)
-            {
-                if (book[0].Equals(titleInput, StringComparison.OrdinalIgnoreCase) &&
-                    book[1].Equals(authorInput, StringComparison.OrdinalIgnoreCase))
-                {
-                    Console.WriteLine($"\n\"{titleInput}\" by {authorInput} already exists.");
-                    Console.ReadKey();
-                    return;
-                }
-            }
-            Console.WriteLine();
-            Console.Write($"Are you sure you want to add \"{titleInput}\" by {authorInput}? (yes/no): ");
-            string confirm = Console.ReadLine();
-
-            if (confirm.Equals("yes", StringComparison.OrdinalIgnoreCase))
-            {
-
-                Books.Add(new string[] { titleInput, authorInput });
-                Console.WriteLine($"\n\"{titleInput}\" added to collection!");
-                File.AppendAllText("Books.txt", $"{titleInput},{authorInput}\n");
-            }
-            else
-            {
-                Console.WriteLine("\nReturning to menu...");
-            }
-        }
-
-
-        static void ViewBooks(List<string[]> Books, string role)
-        {
-
-            Console.Clear();
-
-            Console.WriteLine("===========================================================================");
-            Console.WriteLine("                      BOOK COLLECTION                         ");
-            Console.WriteLine("===========================================================================");
-
-            if (role == "Librarian")
-            {
-                Console.WriteLine("{0,-5} {1,-25} {2,-20} {3,-20}", "#", "Title", "Author", "Details");
-            }
-            else if (role == "Student")
-            {
-                Console.WriteLine("{0,-5} {1,-25} {2,-20} {3,-20}", "#", "Title", "Author", "Status");
-            }
-
-            Console.WriteLine(new string('-', 75));
-
-            for (int i = 0; i < Books.Count; i++)
-            {
-                string borrowed = (Books[i].Length > 2) ? Books[i][2] : "";
-
-                string queue = (Books[i].Length > 3) ? Books[i][3] : "";
-
-                string display;
-
-                if (role == "Librarian")
-                {
-                    string queueDisplay = string.IsNullOrEmpty(queue) ? "None" : queue;
-                    display = $"Borrowed: {borrowed} | Queue: {queueDisplay}";
-                }
-                else
-                {
-                    int queueCount = string.IsNullOrEmpty(queue) ? 0 : queue.Split('|').Length;
-
-                    if (string.IsNullOrEmpty(borrowed))
-                        display = "Available";
-                    else
-                        display = $"Unavailable | Queue: {queueCount}";
-                }
-
-                Console.WriteLine("{0,-5} {1,-25} {2,-20} {3,-20}", i + 1, Books[i][0], Books[i][1], display);
-
-            }
-
-        }
-
-
-        static void SignIn(List<string[]> Students)
-        {
-            Console.Clear();
-            Console.WriteLine("----- SIGN IN -----");
+            Console.WriteLine("                 LOGIN");
+            Console.WriteLine("=========================================\n");
 
             Console.Write("Username: ");
-            string username = Console.ReadLine();
+            string username = Console.ReadLine().Trim();
 
-            Console.Write("Password: ");
-            string password = Console.ReadLine();
+            Console.WriteLine("Password: ");
+            string password = Console.ReadLine().Trim();
 
+            string userFolder = Path.Combine("Users", username);
 
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            if (!Directory.Exists(userFolder))
             {
-                Console.WriteLine();
-                Console.WriteLine("No information entered. Returning to menu...");
-                Console.ReadKey();
+                Console.WriteLine("\nAccount not found!");
+                Pause();
+                Console.Clear();
                 return;
-
             }
 
-            else
+
+            string profilePath =
+                    Path.Combine(UserFolder, "Profile.txt");
+
+            string[] profile = File.ReadAllLines(profilePath);
+
+            string savedPassword = "";
+
+            foreach(string pass in profilePath)
             {
-                foreach (var user in Students)
+                string[] data = pass.Split('|');
+
+                if (data[0] == "Password")
                 {
-                    if (user[0] == username)
+                    savedPassword = data[1];
+                }
+            }
+
+            CurrentUser = username;
+            UserFolder = userFolder;
+
+            Console.WriteLine("\nLogin Successful!");
+            Pause();
+
+            Dashboard();
+        }
+
+        static void Dashboard()
+        {
+            while (true)
+            {
+                Console.Clear();
+
+                string profilePath =
+                    Path.Combine(UserFolder, "Profile.txt");
+
+                string[] profile =
+                    File.ReadAllLines(profilePath);
+
+                string budget = "";
+                string visits = "";
+                string members = "";
+
+                foreach (string line in profile)
+                {
+                    string[] data = line.Split('|');
+
+                    switch (data[0])
                     {
-                        Console.WriteLine("Username already exists!");
-                        Console.ReadKey();
-                        return;
+                        case "Budget":
+                            budget = data[1];
+                            break;
+
+                        case "Visits":
+                            visits = data[1];
+                            break;
+
+                        case "Members":
+                            members = data[1];
+                            break;
                     }
                 }
 
-                string[] newUser = { username, password, "Student" };
-                Students.Add(newUser);
-                File.AppendAllText("StudentList.txt", $"{username},{password},Student\n");
+                Console.WriteLine("=========================================");
+                Console.WriteLine("               GROCYCLE");
+                Console.WriteLine("=========================================\n");
 
+                Console.WriteLine($"Welcome, {CurrentUser}");
+                Console.WriteLine();
 
-                Console.WriteLine("Account created successfully!");
-                Console.ReadKey();
+                Console.WriteLine($"Monthly Budget : ${budget}");
+                Console.WriteLine($"Store Visits   : {visits}");
+                Console.WriteLine($"Family Members : {members}");
+
+                Console.WriteLine("\n=========================================\n");
+
+                Console.WriteLine("[1] Account Information");
+                Console.WriteLine("[2] Inventory Management");
+                Console.WriteLine("[3] Grocery Planner");
+                Console.WriteLine("[4] Expiry Checker");
+                Console.WriteLine("[5] Log out");
+
+                Console.Write("\nEnter Choice: ");
+
+                string choice = Console.ReadLine();
+
+                switch (choice)
+                {
+
+                    case "1":
+
+                        AccountInformation();
+                        break;
+
+                    case "2":
+                        InventoryMenu();
+                        break;
+
+                    case "3":
+                        GroceryPlanner();
+                        break;
+
+                    case "4":
+                        ExpiryMenu();
+                        break;
+
+                    case "5":
+                        CurrentUser = "";
+                        UserFolder = "";
+                        return;
+
+                    default:
+                        Console.WriteLine("\nInvalid Choice!");
+                        Pause();
+                        break;
+                }
             }
-           
         }
 
-
-        static string FindUser(List<string[]> Students, List<string[]> Librarians, out string current)
+        static void AccountInformation()
         {
-            Console.Write("Username: ");
-            current = Console.ReadLine();
+            Console.Clear();
 
-            Console.Write("Password: ");
-            string pass = Console.ReadLine();
+            string profilePath =
+            Path.Combine(UserFolder, "Profile.txt");
 
+            string[] profile =
+                File.ReadAllLines(profilePath);
 
+            Console.WriteLine("=================================");
+            Console.WriteLine("      ACCOUNT INFORMATION");
+            Console.WriteLine("=================================\n");
 
-            foreach (var s in Students)
-                if (s[0] == current && s[1] == pass)
-                    return s[2];
-
-            foreach (var l in Librarians)
-                if (l[0] == current && l[1] == pass)
-                    return l[2];
-
-            return null;
-        }
-
-
-        static void BorrowBook(List<string[]> Books, string currentUser)
-        {
-            List<string> borrowedThisSession = new List<string>();
-
-            while (true)
+            foreach (string line in profile)
             {
-                Console.Clear();
-                ViewBooks(Books, "Student");
-
-                Console.Write("\nBorrow a book? (yes/no): ");
-                string choice = Console.ReadLine().ToLower();
-
-                if (choice == "no") break;
-                if (choice != "yes") continue;
-
-                Console.Write("Enter book title: ");
-                string input = Console.ReadLine();
-
-                int index = FindBookIndex(Books, input);
-
-                if (index == -1)
-                {
-                    Console.WriteLine("\nBook not found!");
-                    Pause();
-                    continue;
-                }
-
-                string[] book = Books[index];
-
-                string borrowedBy = GetField(book, 2);
-                string queue = GetField(book, 3);
-
-
-                if (borrowedBy == currentUser)
-                {
-                    Console.WriteLine("\nYou already borrowed this book.");
-                    Pause();
-                    continue;
-                }
-
-
-                if (string.IsNullOrEmpty(borrowedBy))
-                {
-                    Books[index] = new string[] { book[0], book[1], currentUser, "" };
-                    borrowedThisSession.Add(book[0]);
-
-                    Console.WriteLine($"\nYou borrowed \"{book[0]}\".");
-                }
-                else
-                {
-                    Queuing(Books, index, queue, currentUser);
-                }
-
-                SaveBooks(Books);
-                Pause();
+                Console.WriteLine(
+                    line.Replace("|", ": "));
             }
 
-            DisplaySummary(borrowedThisSession);
-        }
+            Console.WriteLine();
+            Console.Write("Update household information? (Y/N): ");
 
+            string choice =
+                Console.ReadLine().ToUpper();
+
+            if (choice != "Y")
+                return;
+
+            
+
+
+            Console.WriteLine("\n\n=================================");
+            Console.WriteLine(" UPDATE HOUSEHOLD INFORMATION");
+            Console.WriteLine("=================================\n");
+
+            Console.Write("Monthly Grocery Budget: $");
+            string budget =
+                Console.ReadLine();
+
+            Console.Write("Supermarket Visits Per Month: ");
+            string visits =
+                Console.ReadLine();
+
+            Console.Write("Number of Family Members: ");
+            string members =
+                Console.ReadLine();
+
+            string[] newProfile =
+            {
+                $"Username|{CurrentUser}",
+                $"Budget|{budget}",
+                $"Visits|{visits}",
+                $"Members|{members}"
+    };
+
+            File.WriteAllLines(
+                profilePath,
+                newProfile);
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "Household information updated successfully!");
+
+            Pause();
+        }
 
         static void Pause()
         {
-            Console.WriteLine("\nPress any key...");
+            Console.WriteLine("\nPress any key to continue...");
             Console.ReadKey();
         }
 
-
-        static int FindBookIndex(List<string[]> Books, string title)
+        static void InventoryMenu()
         {
-            for (int i = 0; i < Books.Count; i++)
+            while (true)
             {
-                if (Books[i][0].Equals(title, StringComparison.OrdinalIgnoreCase))
-                    return i;
+                Console.Clear();
+
+                Console.WriteLine("=========================================");
+                Console.WriteLine("         INVENTORY MANAGEMENT");
+                Console.WriteLine("=========================================");
+
+                ViewInventory();
+
+
+                Console.WriteLine("\n[1] Add Item");
+                Console.WriteLine("[2] Update Quantity");
+                Console.WriteLine("[3] Remove Item");
+                Console.WriteLine("[4] Back");
+
+                Console.Write("\nChoice: ");
+
+                string choice = Console.ReadLine();
+
+                switch (choice)
+                {
+                    case "1":
+                        AddInventory();
+                        break;
+
+                    case "2":
+                        UpdateInventory();
+                        break;
+
+                    case "3":
+                        RemoveInventory();
+                        break;
+
+                    case "4":
+                        return;
+
+                    default:
+                        Console.WriteLine("Please input a valid option...");
+                        break;
+
+                }
             }
-            return -1;
         }
 
-
-        static string GetField(string[] arr, int index)
+        static void AddInventory()
         {
-            if (arr.Length > index)
-                return arr[index];
+            Console.Clear();
 
-            return "";
-        }
+            Console.Write("Item Name: ");
+            string name = Console.ReadLine();
 
+            Console.Write("Quantity: ");
+            string quantity = Console.ReadLine();
 
-        static void Queuing(List<string[]> Books, int index, string queue, string user)
-        {
-            List<string> queueList;
+            Console.Write("Expiry Date (MM/DD/YYYY): ");
+            string expiry = Console.ReadLine();
 
-            if (string.IsNullOrEmpty(queue))
-                queueList = new List<string>();
-            else
-                queueList = queue.Split('|').ToList();
+            string inventoryPath =
+                Path.Combine(UserFolder, "Inventory.txt");
 
-            if (queueList.Contains(user))
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(quantity) || string.IsNullOrEmpty(expiry))
             {
-                Console.WriteLine("\nYou are already in the queue.");
+                Console.WriteLine();
+                Console.WriteLine("No information entered. Returning to menu...");
+                Console.ReadKey();
                 return;
             }
 
-            queueList.Add(user);
-
-            string[] book = Books[index];
-            Books[index] = new string[]
-            {
-                 book[0],
-                 book[1],
-                GetField(book, 2),
-                string.Join("|", queueList)};
 
 
-            Console.WriteLine("\nAdded to queue.");
+                Console.WriteLine("\nItem Added!");
+
+                File.AppendAllText(
+                inventoryPath,
+                $"{name}|{quantity}|{expiry}\n");
+            
+            
+
+            Pause();
         }
 
-
-        static void SaveBooks(List<string[]> Books)
-        {
-            File.WriteAllLines("Books.txt",
-                Books.Select(b => string.Join(",", b)));
-        }
-
-
-        static void DisplaySummary(List<string> list)
+        static void ViewInventory()
         {
             Console.Clear();
-            Console.WriteLine("----- Borrow Summary -----");
 
-            if (list.Count == 0)
+            string inventoryPath =
+                Path.Combine(UserFolder, "Inventory.txt");
+
+            string[] items =
+                File.ReadAllLines(inventoryPath);
+
+            Console.WriteLine("=========================================");
+            Console.WriteLine("               INVENTORY");
+            Console.WriteLine("=========================================\n");
+
+            if (items.Length == 0)
             {
-                Console.WriteLine("No books borrowed.");
+                Console.WriteLine("Inventory Empty.");
             }
             else
             {
-                for (int i = 0; i < list.Count; i++)
+                Console.WriteLine(
+                    "Item\t\tQty\tExpiry");
+
+                Console.WriteLine(
+                    "-----------------------------------------");
+
+                foreach (string item in items)
                 {
-                    Console.WriteLine($"{i + 1}. {list[i]}");
+                    string[] data = item.Split('|');
+
+                    Console.WriteLine($"{data[0]}\t\t{data[1]}\t{data[2]}");
                 }
             }
 
-            Console.ReadKey();
         }
 
-
-        static void BorrowApproval(List<string[]> Books)
+        static void UpdateInventory()
         {
             Console.Clear();
 
+            string inventoryPath =
+                Path.Combine(UserFolder, "Inventory.txt");
 
-            ViewBooks(Books, "Librarian");
-            Console.WriteLine("\n ----- Pending approval requests -----\n");
+            List<string> items =
+                File.ReadAllLines(inventoryPath).ToList();
 
-            Console.Write("Enter a number for approval: ");
+            Console.Write("Item Name: ");
+            string itemName = Console.ReadLine();
+
+            bool found = false;
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                string[] data = items[i].Split('|');
+
+                if (data[0].ToLower() ==
+                    itemName.ToLower())
+                {
+                    Console.Write("New Quantity: ");
+
+                    string qty =
+                        Console.ReadLine();
+
+                    data[1] = qty;
+
+                    items[i] =
+                        string.Join("|", data);
+
+                    found = true;
+                    break;
+                }
+            }
+
+            if (found)
+            {
+                File.WriteAllLines(
+                    inventoryPath,
+                    items);
+
+                Console.WriteLine(
+                    "\nQuantity Updated!");
+            }
+            else
+            {
+                Console.WriteLine(
+                    "\nItem Not Found.");
+            }
+
+            Pause();
+        }
+
+        static void RemoveInventory()
+        {
+            Console.Clear();
+
+            string inventoryPath =
+                Path.Combine(UserFolder, "Inventory.txt");
+
+            List<string> items =
+                File.ReadAllLines(inventoryPath).ToList();
+
+            Console.Write("Item Name: ");
+
+            string name =
+                Console.ReadLine();
+
+            bool removed = false;
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                string[] data =
+                    items[i].Split('|');
+
+                if (data[0].ToLower() ==
+                    name.ToLower())
+                {
+                    items.RemoveAt(i);
+
+                    removed = true;
+                    break;
+                }
+            }
+
+            if (removed)
+            {
+                File.WriteAllLines(
+                    inventoryPath,
+                    items);
+
+                Console.WriteLine(
+                    "\nItem Removed!");
+            }
+            else
+            {
+                Console.WriteLine(
+                    "\nItem Not Found.");
+            }
+
+            Pause();
+        }
+
+
+        static void GroceryPlanner()
+        {
+            Console.Clear();
+
+            string inventoryPath =
+                Path.Combine(UserFolder, "Inventory.txt");
+
+            string[] items =
+                File.ReadAllLines(inventoryPath);
+
+            Console.WriteLine("=========================================");
+            Console.WriteLine("            GROCERY PLANNER");
+            Console.WriteLine("=========================================\n");
+
+            bool foundLowStock = false;
+
+            foreach (string item in items)
+            {
+                string[] data = item.Split('|');
+
+                int quantity =
+                    Convert.ToInt32(data[1]);
+
+                if (quantity <= 2)
+                {
+                    foundLowStock = true;
+
+                    Console.WriteLine(
+                        $"Buy More: {data[0]}");
+                }
+            }
+
+            if (!foundLowStock)
+            {
+                Console.WriteLine(
+                    "No low-stock items detected.");
+            }
+
             Console.WriteLine();
+            Console.WriteLine(
+                "Suggested purchases are based on low inventory.");
 
-            if (!int.TryParse(Console.ReadLine(), out int id))
-                return;
-
-            id -= 1;
-            if (id < 0 || id >= Books.Count)
-                return;
-
-            string[] book = Books[id];
-            string borrowedby = GetField(book, 2);
-            string queue = GetField(book, 3);
-
-            if (!string.IsNullOrEmpty(borrowedby))
-            {
-                Console.WriteLine("\nBook has not been returned yet.");
-                Pause();
-                return;
-            }
-            if (string.IsNullOrEmpty(queue))
-            {
-                Console.WriteLine("\nThere are no pending requests");
-                Pause();
-                return;
-            }
-
-            List<string> queueList = queue.Split('|').ToList();
-            string next = queueList[0];
-
-            Console.WriteLine($"Pending user: {next}");
-            Console.Write("[A] Approve | [D] Decline : ");
-            string choice = Console.ReadLine().ToUpper();
-
-            if (choice == "A")
-            {
-                queueList.RemoveAt(0);
-
-                Books[id] = new string[]
-                {
-                    book[0],
-                    book[1],
-                    next,
-                    string.Join("|", queueList)
-                };
-
-
-
-                Console.WriteLine($"\nApproved. Book assigned to {next}.");
-
-            }
-
-            else if (choice == "D")
-            {
-                queueList.RemoveAt(0);
-
-                Books[id] = new string[]
-                {
-                    book[0],
-                    book[1],
-                    "",
-                    string.Join("|", queueList)
-                };
-
-                Console.WriteLine($"\nRequest user {next} has been removed from queue...");
-            }
-
-            else
-            {
-                Console.WriteLine("\nInvalid choice.");
-                Pause();
-                return;
-            }
-
-            SaveBooks(Books);
             Pause();
+        }
 
+        static void RecordPurchase()
+        {
+            Console.Clear();
+
+            Console.Write("Item Name: ");
+            string item = Console.ReadLine();
+
+            Console.Write("Cost: ");
+            string cost = Console.ReadLine();
+
+            string purchasePath =
+                Path.Combine(UserFolder,
+                "Purchases.txt");
+
+            File.AppendAllText(
+                purchasePath,
+                $"{item}|{cost}\n");
+
+            Console.WriteLine(
+                "\nPurchase Recorded!");
+
+            Pause();
+        }
+
+        static void GenerateShoppingList()
+        {
+        }
+
+        static void AnalyzeConsumption()
+        {
+        }
+
+        static void ExpiryMenu()
+        {
+        }
+
+        static void CheckExpiringItems()
+        {
+        }
+
+        static void SuggestItemUsage()
+        {
         }
 
 
-        static void ReturnBookStudent(List<string[]> Books, string currentUser)
+
+        static void WasteMenu()
         {
-            Console.Clear();
-            Console.WriteLine("----- Your Borrowed Books -----");
+        }
+
+        static void RecordWaste()
+        {
+        }
+
+        static void SuggestDisposal()
+        {
+        }
 
 
-            List<int> userBooks = new List<int>();
+        static void AddPoints(int points)
+        {
+        }
 
-            for (int i = 0; i < Books.Count; i++)
-            {
-                string borrowedBy = GetField(Books[i], 2);
+        static void DeductPoints(int points)
+        {
+        }
 
-                if (borrowedBy == currentUser)
-                {
-                    userBooks.Add(i);
-                    Console.WriteLine($"{userBooks.Count}. {Books[i][0]} by {Books[i][1]}");
-                }
-            }
-
-            if (userBooks.Count == 0)
-            {
-                Console.WriteLine("\nYou have no borrowed books.");
-                Pause();
-                return;
-            }
-
-            Console.Write("\nEnter number to return: ");
-            if (!int.TryParse(Console.ReadLine(), out int choice))
-                return;
-
-            choice -= 1;
-
-            if (choice < 0 || choice >= userBooks.Count)
-                return;
-
-            int index = userBooks[choice];
-            string[] book = Books[index];
-
-            string queue = GetField(book, 3);
+        static void ViewPoints()
+        {
+        }
 
 
-            if (string.IsNullOrWhiteSpace(queue))
-            {
-                Books[index] = new string[]
-                {
-                    book[0],
-                    book[1],
-                    "",
-                    ""
-                };
 
-                Console.WriteLine("\nBook returned. It is now available.");
-            }
-            else
-            {
-                Books[index] = new string[]
-                {
-                    book[0],
-                    book[1],
-                     "",
-                    queue
-                };
+        static void BudgetAnalysis()
+        {
+        }
 
-                Console.WriteLine("\nBook returned.");
-                Console.WriteLine("Waiting for librarian approval.");
-            }
+        static void CheckOverspending()
+        {
+        }
 
-            SaveBooks(Books);
-            Pause();
+        static void DetectOverconsumption()
+        {
+        }
+
+
+
+        static void GenerateMonthlyReport()
+        {
+        }
+
+        static void ComparePreviousMonth()
+        {
+        }
+
+
+        static void SaveUserData()
+        {
+        }
+
+        static void LoadUserData()
+        {
         }
     }
 }
-
-
-
-
